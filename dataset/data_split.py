@@ -1,5 +1,9 @@
 """Example of splitting the dataset into training and testing sets."""
 
+"""First, split the dataset into 90 % training set and 10 % test set .
+Remain 10 % test set. Read the 90 % training set and split it again into 90 % training set and 10% validation set.
+For potential training, use the 90 % * 90 % training set and 90 % * 10 % validation set."""
+
 from pathlib import Path
 
 from sklearn.model_selection import train_test_split
