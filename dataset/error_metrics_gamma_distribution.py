@@ -1,3 +1,5 @@
+# Calculate the error metrics based on dataset and potential 
+
 import yaml
 from ase import Atoms
 from pyace import PyACECalculator
