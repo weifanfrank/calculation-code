@@ -1,4 +1,5 @@
-# Calculate the error metrics based on dataset and potential 
+"""Calculate the error metrics based on dataset and potential."""
+
 
 import yaml
 from ase import Atoms
