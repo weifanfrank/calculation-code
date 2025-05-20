@@ -25,7 +25,6 @@ for entry in dataset["data_points"]:
     lattice = structure["lattice"]["matrix"]
     pbc = structure["lattice"].get("pbc", [True, True, True])
 
-    # 提取元素名稱
     symbols = []
     positions = []
     for site in structure["sites"]:
@@ -37,7 +36,6 @@ for entry in dataset["data_points"]:
     atoms = Atoms(symbols=symbols, positions=positions, cell=lattice, pbc=pbc)
     atoms_list.append(atoms)
 
-    # 提取能量與力
     E_ref.append(entry["property"]["energy"])
     F_ref.append(entry["property"]["forces"])
     num_atoms.append(len(symbols))
