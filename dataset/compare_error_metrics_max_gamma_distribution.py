@@ -67,17 +67,17 @@ def process_dataset(yaml_file, potential_yaml, potential_asi, label):
 # === Dataset settings ===
 datasets = [
     {
-        "yaml_file": "dataset.yaml",
-        "potential_yaml": "output_potential.yaml",
-        "potential_asi": "output_potential.asi",
-        "label": "Model 1 on Test Set",
+        "yaml_file": "dataset_test.yaml",
+        "potential_yaml": "active_learning_1st_output_potential.yaml",
+        "potential_asi": "active_learning_1st_output_potential.asi",
+        "label": "Model 2 on Test Set",
         "color": "blue"
     },
     {
-        "yaml_file": "active_learning_1st_dataset.yaml",
+        "yaml_file": "active_learning_1st_dataset_test.yaml",
         "potential_yaml": "active_learning_1st_output_potential.yaml",
         "potential_asi": "active_learning_1st_output_potential.asi",
-        "label": "Model 2 on Active Test Set",
+        "label": "Model 2 on 1st Active Test Set",
         "color": "red"
     }
 ]
@@ -100,19 +100,28 @@ min_gamma = np.min(all_gamma_values)
 max_gamma = np.max(all_gamma_values)
 bins = np.linspace(min_gamma, max_gamma, 51)  # 50 bins
 
-# === Plot ===
+# === Plot (stacked histogram) ===
 plt.figure(figsize=(10, 6))
 
-for label, color, gamma_values in all_max_gammas:
-    plt.hist(gamma_values, bins=bins, alpha=0.6,
-             label=label, color=color, edgecolor='black')
+labels = [label for label, _, _ in all_max_gammas]
+colors = [color for _, color, _ in all_max_gammas]
+data = [gamma_values for _, _, gamma_values in all_max_gammas]
 
-plt.title('Max Gamma Distribution per Structure', fontsize=18, fontweight='bold')
-plt.xlabel('Maximum Gamma Value', fontsize=16, fontweight='bold')
-plt.ylabel('Count', fontsize=16, fontweight='bold')
-plt.tick_params(axis='both', which='major', labelsize=14)
-plt.legend(fontsize=14)
-plt.grid(True)
+plt.hist(data, bins=bins, stacked=True, label=labels, color=colors, edgecolor='black')
+
+plt.title('Max Gamma Distribution per Structure (Test)', fontsize=18)
+plt.xlabel('Maximum Gamma Value', fontsize=16)
+plt.ylabel('Count', fontsize=16)
+plt.tick_params(axis='both', which='major', labelsize=16, length=8, width=1.2)
+plt.legend(fontsize=14, frameon=False)
+
+ax = plt.gca()
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.spines['bottom'].set_linewidth(1.2)
+ax.spines['left'].set_linewidth(1.2)
+
+#plt.grid(True)
 plt.tight_layout()
-plt.savefig('comparison_max_gamma_distribution.png', dpi=300)
+plt.savefig('comparison_max_gamma_distribution.png', dpi=1000)
 plt.show()
