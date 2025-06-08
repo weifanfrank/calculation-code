@@ -25,6 +25,7 @@ for entry in dataset["data_points"]:
     lattice = structure["lattice"]["matrix"]
     pbc = structure["lattice"].get("pbc", [True, True, True])
 
+    # 提取元素名稱
     symbols = []
     positions = []
     for site in structure["sites"]:
@@ -36,6 +37,7 @@ for entry in dataset["data_points"]:
     atoms = Atoms(symbols=symbols, positions=positions, cell=lattice, pbc=pbc)
     atoms_list.append(atoms)
 
+    # 提取能量與力
     E_ref.append(entry["property"]["energy"])
     F_ref.append(entry["property"]["forces"])
     num_atoms.append(len(symbols))
@@ -99,15 +101,34 @@ g1.ax_joint.text(
     0.05, 0.95,
     f"MAE = {energy_mae:.2f} meV/atom",
     transform=g1.ax_joint.transAxes,
-    ha="left", va="top", fontsize=12
+    ha="left", va="top", fontsize=14
 )
 
+# === Fix ticks for bottom & left ===
+g1.ax_joint.tick_params(axis='both', which='major', direction='out', length=8, width=1.2, labelsize=14)
+
+# 強制顯示 tick 線（有時會被 Seaborn 蓋掉）
+for tick in g1.ax_joint.xaxis.get_major_ticks():
+    tick.tick1line.set_visible(True)  # bottom
+    tick.tick2line.set_visible(False)  # top
+
+for tick in g1.ax_joint.yaxis.get_major_ticks():
+    tick.tick1line.set_visible(True)  # left
+    tick.tick2line.set_visible(False)  # right
+
+# Spines 加粗
+g1.ax_joint.spines['bottom'].set_linewidth(1.2)
+g1.ax_joint.spines['left'].set_linewidth(1.2)
+g1.ax_joint.spines['top'].set_visible(False)
+g1.ax_joint.spines['right'].set_visible(False)
+
+
 # Set labels
-g1.set_axis_labels("E(DFT), eV/atom", "E*, eV/atom")
-g1.fig.suptitle("Energy", fontsize=14)
+g1.set_axis_labels("E(DFT), eV/atom", "E*, eV/atom", fontsize=16)
+g1.fig.suptitle("Energy", fontsize=18, fontweight="bold")
 g1.fig.tight_layout()
 g1.fig.subplots_adjust(top=0.95)
-g1.savefig("energy_jointplot.png", dpi=300)
+g1.savefig("energy_jointplot.png", dpi=1000)
 
 # --- Plot Force Joint Plot ---
 df_force = pd.DataFrame({
@@ -135,15 +156,31 @@ g2.ax_joint.text(
     0.05, 0.95,
     f"MAE = {force_mae:.2f} meV/Å",
     transform=g2.ax_joint.transAxes,
-    ha="left", va="top", fontsize=12
+    ha="left", va="top", fontsize=14
 )
 
+g2.ax_joint.tick_params(axis='both', which='major', direction='out', length=8, width=1.2, labelsize=14)
+
+for tick in g2.ax_joint.xaxis.get_major_ticks():
+    tick.tick1line.set_visible(True)
+    tick.tick2line.set_visible(False)
+
+for tick in g2.ax_joint.yaxis.get_major_ticks():
+    tick.tick1line.set_visible(True)
+    tick.tick2line.set_visible(False)
+
+g2.ax_joint.spines['bottom'].set_linewidth(1.2)
+g2.ax_joint.spines['left'].set_linewidth(1.2)
+g2.ax_joint.spines['top'].set_visible(False)
+g2.ax_joint.spines['right'].set_visible(False)
+
+
 # Set labels
-g2.set_axis_labels("Fi(DFT), eV/Å", "Fi*, eV/Å")
-g2.fig.suptitle("Forces", fontsize=14)
+g2.set_axis_labels("Fi(DFT), eV/Å", "Fi*, eV/Å", fontsize=16)
+g2.fig.suptitle("Force", fontsize=18, fontweight="bold")
 g2.fig.tight_layout()
 g2.fig.subplots_adjust(top=0.95)
-g2.savefig("force_jointplot.png", dpi=300)
+g2.savefig("force_jointplot.png", dpi=1000)
 
 # === Print error metrics ===
 print("=== Error Metrics ===")
