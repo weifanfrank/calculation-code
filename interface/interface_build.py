@@ -7,7 +7,7 @@ from pymatgen.core.operations import SymmOp
 
 # === Parameter Settings ===
 miller_index = (1, 0, 0)
-vacuum_thickness = 15.0
+vacuum_thickness = 20.0
 interface_gap = 3.5
 min_thickness = 5.0
 max_mismatch = 0.05
