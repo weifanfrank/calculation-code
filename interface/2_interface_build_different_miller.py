@@ -1,77 +1,21 @@
+
 from pymatgen.core import Structure
-from pymatgen.core.surface import SlabGenerator
 from pymatgen.analysis.interfaces.coherent_interfaces import CoherentInterfaceBuilder
 from pymatgen.analysis.interfaces.substrate_analyzer import ZSLGenerator
 import numpy as np
 
-# === Step 1: Compute in-plane lattice vectors for a slab ===
-def get_inplane_vectors(structure, miller_index, min_thickness=10, vacuum=15):
-    """
-    Generate a slab from the given structure and Miller index.
-    Return the slab object and the lengths of the two in-plane lattice vectors.
-    """
-    slabgen = SlabGenerator(structure, miller_index, min_thickness, vacuum)
-    slab = slabgen.get_slab()
-    vec_a = slab.lattice.matrix[0]  # First lattice vector
-    vec_b = slab.lattice.matrix[1]  # Second lattice vector
-    return slab, np.linalg.norm(vec_a[:2]), np.linalg.norm(vec_b[:2])  # Compute lengths in XY plane
+# === Load structure files ===
+substrate = Structure.from_file("Li_CONTCAR")
+film = Structure.from_file("LYC_CONTCAR")
 
-# === Step 2: Find the best supercell match between two slabs ===
-def find_best_match_2d(a1, b1, a2, b2, max_n=6):
-    """
-    Search for the best integer multiples of the two slabs' lattice vectors
-    that minimize the mismatch between them.
-    Returns the best combination and the smallest mismatch.
-    """
-    best_combo, best_mis = None, float('inf')
-    for n1a in range(1, max_n + 1):
-        for n1b in range(1, max_n + 1):
-            target_a = n1a * a1
-            target_b = n1b * b1
-            for n2a in range(1, max_n + 1):
-                for n2b in range(1, max_n + 1):
-                    mis_a = abs(n2a * a2 - target_a) / target_a
-                    mis_b = abs(n2b * b2 - target_b) / target_b
-                    mis = max(mis_a, mis_b)
-                    if mis < best_mis:
-                        best_mis = mis
-                        best_combo = (n1a, n1b, n2a, n2b)
-    return best_combo, best_mis
+# === Set Miller indices ===
+substrate_miller = (1, 1, 0)  # Li
+film_miller = (1, 0, 0)       # LYC
 
-# === Step 3: Load structures from files ===
-substrate = Structure.from_file("Li_CONTCAR")  # Li substrate
-film = Structure.from_file("LYC_CONTCAR")      # LYC film
-
-# === Step 4: Define Miller indices for slabs ===
-substrate_miller = (1, 1, 1)  # Li slab orientation
-film_miller = (1, 1, 0)       # LYC slab orientation
-
-# === Step 5: Generate slabs and compute in-plane lattice lengths ===
-substrate_slab, li_a, li_b = get_inplane_vectors(substrate, substrate_miller)
-film_slab, lyc_a, lyc_b = get_inplane_vectors(film, film_miller)
-
-print(f"Li slab in-plane: a={li_a:.3f}, b={li_b:.3f}")
-print(f"LYC slab in-plane: a={lyc_a:.3f}, b={lyc_b:.3f}")
-
-# === Step 6: Find best supercell match ===
-best_combo, best_mis = find_best_match_2d(li_a, li_b, lyc_a, lyc_b, max_n=6)
-print(f"Best supercell: Li x({best_combo[0]}, {best_combo[1]}), "
-      f"LYC x({best_combo[2]}, {best_combo[3]}), mismatch={best_mis*100:.2f}%")
-
-# === Step 7: Save mismatch report and print warning if mismatch > 5% ===
-with open("mismatch_report.txt", "w") as f:
-    f.write(f"Best supercell: Li x({best_combo[0]}, {best_combo[1]}), "
-            f"LYC x({best_combo[2]}, {best_combo[3]}), mismatch={best_mis*100:.2f}%\n")
-
-if best_mis > 0.05:
-    print(f"Warning: Mismatch = {best_mis*100:.2f}% (> 5%), continuing to generate interface...")
-else:
-    print("Mismatch < 5%, generating interface...")
-
-# === Step 8: Build the interface using CoherentInterfaceBuilder ===
+# === Create ZSLGenerator and CoherentInterfaceBuilder ===
 zslgen = ZSLGenerator(
     max_area_ratio_tol=0.09,
-    max_area=500,
+    max_area=150,
     max_length_tol=0.05,
     max_angle_tol=0.01,
     bidirectional=True
@@ -88,21 +32,92 @@ builder = CoherentInterfaceBuilder(
     filter_out_sym_slabs=True
 )
 
-print("Available terminations:", builder.terminations)
-termination = builder.terminations[0]  # Select the first termination option
+print("Available terminations:")
+for i, term in enumerate(builder.terminations):
+    print(f"Index {i}: {term}")
 
-# Generate interface structures
-interfaces = builder.get_interfaces(
-    termination=termination,
-    gap=3.5,                # Gap between slabs in Å
-    vacuum_over_film=20.0,  # Vacuum thickness above the film
-    film_thickness=1,       # Number of layers for the film
-    substrate_thickness=2,  # Number of layers for the substrate
-    in_layers=True
-)
+# === Compute interface angle deviation ===
+def compute_angle_deviation(builder):
+    matches = builder.zsl_matches
+    if not matches:
+        return None
 
-# Save all generated interfaces as CIF files
-for i, interface in enumerate(interfaces):
-    filename = f"Li_LYC_interface_{i}.cif"
-    interface.to(filename)
-    print(f"Interface saved to {filename}")
+    deviations = []
+    for m in matches:
+        film_a, film_b = m.film_transformation[0], m.film_transformation[1]
+        sub_a, sub_b = m.substrate_transformation[0], m.substrate_transformation[1]
+
+        # Calculate angle between two vectors
+        def angle(v1, v2):
+            cos_theta = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+            return np.degrees(np.arccos(np.clip(cos_theta, -1.0, 1.0)))
+
+        film_angle = angle(film_a, film_b)
+        sub_angle = angle(sub_a, sub_b)
+        deviations.append(abs(film_angle - sub_angle))
+
+    return min(deviations) if deviations else None
+
+# === Compute surface uniformity ===
+def compute_surface_uniformity(interface, z_tolerance=0.5):
+    # Select film slab atoms (assuming film is on the top side of the interface)
+    film_sites = [site for site in interface.sites if site.frac_coords[2] > 0.5]
+
+    if not film_sites:
+        return 0, 0  # Uniformity and atom count
+
+    # Find maximum z-coordinate (top surface)
+    max_z = max(site.coords[2] for site in film_sites)
+
+    # Select atoms within z_tolerance Å from the top surface
+    top_layer_sites = [site for site in film_sites if abs(site.coords[2] - max_z) <= z_tolerance]
+
+    if len(top_layer_sites) < 2:
+        return 0, len(top_layer_sites)
+
+    # Calculate distances between top layer atoms
+    distances = []
+    for i in range(len(top_layer_sites)):
+        for j in range(i+1, len(top_layer_sites)):
+            distances.append(np.linalg.norm(top_layer_sites[i].coords - top_layer_sites[j].coords))
+
+    return (np.std(distances) if distances else 0), len(top_layer_sites)
+
+# === Process all terminations ===
+report = []
+for i, term in enumerate(builder.terminations):
+    interfaces = list(builder.get_interfaces(
+        termination=term,
+        gap=4.5,
+        vacuum_over_film=20.0,
+        film_thickness=1,
+        substrate_thickness=2,
+        in_layers=True
+    ))
+    interface = interfaces[0]
+
+    filename = f"interface_{i}.cif"
+    interface.to(fmt="cif", filename=filename)
+    print(f"Exported {filename}")
+
+    # Compute surface uniformity and top layer atom count
+    uniformity, top_atom_count = compute_surface_uniformity(interface)
+
+    # Compute angle deviation
+    angle_dev = compute_angle_deviation(builder)
+
+    report.append({
+        "Index": i,
+        "Termination": term,
+        "Uniformity": uniformity,
+        "Top Atom Count": top_atom_count,
+        "Angle Deviation": angle_dev
+    })
+
+# === Sort and output report ===
+print("\n=== Termination Analysis ===")
+for item in report:
+    print(f"Index {item['Index']}: {item['Termination']}")
+    print(f"  Uniformity (std): {item['Uniformity']:.4f}")
+    print(f"  Top Layer Atom Count: {item['Top Atom Count']}")
+    print(f"  Angle Deviation: {item['Angle Deviation']:.4f}\n")
