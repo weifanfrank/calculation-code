@@ -1,9 +1,10 @@
 import yaml
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 from ase import Atoms
 from pyace import PyACECalculator
-import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-import matplotlib.pyplot as plt
 
 def process_dataset(yaml_file, potential_yaml, potential_asi, label):
     with open(yaml_file, 'r') as file:
@@ -68,17 +69,15 @@ def process_dataset(yaml_file, potential_yaml, potential_asi, label):
 datasets = [
     {
         "yaml_file": "dataset_test.yaml",
-        "potential_yaml": "active_learning_1st_output_potential.yaml",
-        "potential_asi": "active_learning_1st_output_potential.asi",
-        "label": "Model 2 on Test Set",
-        "color": "blue"
+        "potential_yaml": "output_potential.yaml",
+        "potential_asi": "output_potential.asi",
+        "label": "Model 1 on Test Set"
     },
     {
         "yaml_file": "active_learning_1st_dataset_test.yaml",
-        "potential_yaml": "active_learning_1st_output_potential.yaml",
-        "potential_asi": "active_learning_1st_output_potential.asi",
-        "label": "Model 2 on 1st Active Test Set",
-        "color": "red"
+        "potential_yaml": "output_potential.yaml",
+        "potential_asi": "output_potential.asi",
+        "label": "Model 1 on 1st Active Test Set"
     }
 ]
 
@@ -92,36 +91,51 @@ for dataset in datasets:
         dataset["potential_asi"],
         dataset["label"]
     )
-    all_max_gammas.append((dataset["label"], dataset["color"], max_gammas))
+    all_max_gammas.append((dataset["label"], max_gammas))
 
 # === Determine common bin edges ===
-all_gamma_values = np.concatenate([g[2] for g in all_max_gammas])
+all_gamma_values = np.concatenate([g[1] for g in all_max_gammas])
 min_gamma = np.min(all_gamma_values)
 max_gamma = np.max(all_gamma_values)
 bins = np.linspace(min_gamma, max_gamma, 51)  # 50 bins
 
-# === Plot (stacked histogram) ===
-plt.figure(figsize=(10, 6))
+# === Plot using Seaborn color palette ===
+sns.set(style="white")
+palette = sns.color_palette("Set2", len(all_max_gammas))
 
-labels = [label for label, _, _ in all_max_gammas]
-colors = [color for _, color, _ in all_max_gammas]
-data = [gamma_values for _, _, gamma_values in all_max_gammas]
+fig, ax = plt.subplots(figsize=(10, 6))
 
-plt.hist(data, bins=bins, stacked=True, label=labels, color=colors, edgecolor='black')
+for i, (label, gamma_values) in enumerate(all_max_gammas):
+    ax.hist(gamma_values, bins=bins, label=label, color=palette[i],
+            edgecolor='black', alpha=0.8, histtype='bar', linewidth=1.5)
 
-plt.title('Max Gamma Distribution per Structure (Test)', fontsize=18)
-plt.xlabel('Maximum Gamma Value', fontsize=16)
-plt.ylabel('Count', fontsize=16)
-plt.tick_params(axis='both', which='major', labelsize=16, length=8, width=1.2)
-plt.legend(fontsize=14, frameon=False)
+#ax.set_title('Max Gamma Distribution per Structure (Test)', fontsize=24, fontweight='bold')
+ax.set_xlabel(r'$\gamma_{\text{max}}$', fontsize=24)
+ax.set_ylabel('Count', fontsize=24)
 
-ax = plt.gca()
+# Tick style
+ax.tick_params(axis='both', which='major', labelsize=20, length=10, width=2, direction='out')
+
+# Axis line style
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
-ax.spines['bottom'].set_linewidth(1.2)
-ax.spines['left'].set_linewidth(1.2)
+ax.spines['bottom'].set_linewidth(2)
+ax.spines['left'].set_linewidth(2)
 
-#plt.grid(True)
-plt.tight_layout()
-plt.savefig('comparison_max_gamma_distribution.png', dpi=1000)
-plt.show()
+# Make all major ticks protrude
+for tick in ax.yaxis.get_major_ticks():
+    tick.tick1line.set_visible(True)
+    tick.tick1line.set_markersize(10)
+    tick.tick1line.set_markeredgewidth(2)
+    tick.tick2line.set_visible(False)
+
+for tick in ax.xaxis.get_major_ticks():
+    tick.tick1line.set_visible(True)
+    tick.tick1line.set_markersize(10)
+    tick.tick1line.set_markeredgewidth(2)
+    tick.tick2line.set_visible(False)
+
+ax.legend(fontsize=18, frameon=False)
+fig.tight_layout()
+fig.savefig('comparison_max_gamma_distribution_seaborn.png', dpi=1000)
+#plt.show()
