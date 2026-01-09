@@ -6,7 +6,7 @@ import seaborn as sns
 from ase import Atoms
 from pyace import PyACECalculator
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-
+import matplotlib.ticker as ticker
 # --- Set plot style ---
 sns.set(style="white", color_codes=True)
 
@@ -88,25 +88,41 @@ g1 = sns.jointplot(
     kind="scatter",
     s=5,
     marginal_kws=dict(bins=50, fill=True),
-    color="C0"
+    color="C0",
+    space=0,
+    marginal_ticks=False
 )
 
 # Draw 45-degree line (behind data points)
 min_val = min(df_energy.min())
 max_val = max(df_energy.max())
+ticks = np.linspace(min_val, max_val, num=4)
 g1.ax_joint.plot([min_val, max_val], [min_val, max_val], ls="--", color="red", zorder=0)
 
 # Add MAE text
 g1.ax_joint.text(
-    0.05, 0.95,
+    0.95, 0.05,
     f"MAE = {energy_mae:.2f} meV/atom",
     transform=g1.ax_joint.transAxes,
-    ha="left", va="top", fontsize=14
+    ha="right", va="bottom", fontsize=19
 )
 
-# === Fix ticks for bottom & left ===
-g1.ax_joint.tick_params(axis='both', which='major', direction='out', length=8, width=1.2, labelsize=14)
+g1.ax_joint.text(
+    0.05, 0.95,
+    "Energy",
+    transform=g1.ax_joint.transAxes,
+    ha="left", va="top", fontsize=26, fontweight="bold"
+)
 
+g1.ax_joint.set_xlim(min_val, max_val)
+g1.ax_joint.set_ylim(min_val, max_val)
+g1.ax_joint.set_xticks(ticks)
+g1.ax_joint.set_yticks(ticks)
+# === Fix ticks for bottom & left ===
+g1.ax_joint.set_aspect('equal', adjustable='box')
+g1.ax_joint.tick_params(axis='both', which='major', direction='out', length=10, width=1.5, labelsize=20)
+g1.ax_joint.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
+g1.ax_joint.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
 # 強制顯示 tick 線（有時會被 Seaborn 蓋掉）
 for tick in g1.ax_joint.xaxis.get_major_ticks():
     tick.tick1line.set_visible(True)  # bottom
@@ -117,16 +133,15 @@ for tick in g1.ax_joint.yaxis.get_major_ticks():
     tick.tick2line.set_visible(False)  # right
 
 # Spines 加粗
-g1.ax_joint.spines['bottom'].set_linewidth(1.2)
-g1.ax_joint.spines['left'].set_linewidth(1.2)
-g1.ax_joint.spines['top'].set_visible(False)
-g1.ax_joint.spines['right'].set_visible(False)
-
+g1.ax_joint.spines['bottom'].set_linewidth(2)
+g1.ax_joint.spines['left'].set_linewidth(2)
+g1.ax_joint.spines['top'].set_linewidth(2)
+g1.ax_joint.spines['right'].set_linewidth(2)
 
 # Set labels
-g1.set_axis_labels("E(DFT), eV/atom", "E*, eV/atom", fontsize=16)
-g1.fig.suptitle("Energy", fontsize=18, fontweight="bold")
-g1.fig.tight_layout()
+g1.set_axis_labels("E, eV/atom", "E*, eV/atom", fontsize=24)
+#g1.fig.suptitle("Energy", fontsize=28, fontweight="bold")
+#g1.fig.tight_layout()
 g1.fig.subplots_adjust(top=0.95)
 g1.savefig("energy_jointplot.png", dpi=1000)
 
@@ -143,24 +158,41 @@ g2 = sns.jointplot(
     kind="scatter",
     s=5,
     marginal_kws=dict(bins=50, fill=True),
-    color="C0"
+    color="C0",
+    space=0,
+    marginal_ticks=False
 )
 
 # Draw 45-degree line (behind data points)
 min_val = min(df_force.min())
 max_val = max(df_force.max())
+ticks = np.linspace(min_val, max_val, num=4)
 g2.ax_joint.plot([min_val, max_val], [min_val, max_val], ls="--", color="red", zorder=0)
 
 # Add MAE text
 g2.ax_joint.text(
-    0.05, 0.95,
+    0.95, 0.05,
     f"MAE = {force_mae:.2f} meV/Å",
     transform=g2.ax_joint.transAxes,
-    ha="left", va="top", fontsize=14
+    ha="right", va="bottom", fontsize=19
 )
 
-g2.ax_joint.tick_params(axis='both', which='major', direction='out', length=8, width=1.2, labelsize=14)
+g2.ax_joint.text(
+    0.05, 0.95,
+    "Force",
+    transform=g2.ax_joint.transAxes,
+    ha="left", va="top", fontsize=26, fontweight="bold"
+)
 
+
+g2.ax_joint.set_xlim(min_val, max_val)
+g2.ax_joint.set_ylim(min_val, max_val)
+g2.ax_joint.set_xticks(ticks)
+g2.ax_joint.set_yticks(ticks)
+g2.ax_joint.set_aspect('equal', adjustable='box')
+g2.ax_joint.tick_params(axis='both', which='major', direction='out', length=10, width=1.5, labelsize=20)
+g2.ax_joint.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
+g2.ax_joint.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
 for tick in g2.ax_joint.xaxis.get_major_ticks():
     tick.tick1line.set_visible(True)
     tick.tick2line.set_visible(False)
@@ -169,16 +201,15 @@ for tick in g2.ax_joint.yaxis.get_major_ticks():
     tick.tick1line.set_visible(True)
     tick.tick2line.set_visible(False)
 
-g2.ax_joint.spines['bottom'].set_linewidth(1.2)
-g2.ax_joint.spines['left'].set_linewidth(1.2)
-g2.ax_joint.spines['top'].set_visible(False)
-g2.ax_joint.spines['right'].set_visible(False)
-
+g2.ax_joint.spines['bottom'].set_linewidth(2)
+g2.ax_joint.spines['left'].set_linewidth(2)
+g2.ax_joint.spines['top'].set_linewidth(2)
+g2.ax_joint.spines['right'].set_linewidth(2)
 
 # Set labels
-g2.set_axis_labels("Fi(DFT), eV/Å", "Fi*, eV/Å", fontsize=16)
-g2.fig.suptitle("Force", fontsize=18, fontweight="bold")
-g2.fig.tight_layout()
+g2.set_axis_labels("Fi, eV/Å", "Fi*, eV/Å", fontsize=24)
+#g2.fig.suptitle("Force", fontsize=28, fontweight="bold")
+#g2.fig.tight_layout()
 g2.fig.subplots_adjust(top=0.95)
 g2.savefig("force_jointplot.png", dpi=1000)
 
