@@ -24,8 +24,7 @@ for entry in dataset["data_points"]:
     structure = entry["structure"]
     lattice = structure["lattice"]["matrix"]
     pbc = structure["lattice"].get("pbc", [True, True, True])
-
-    # 提取元素名稱
+        
     symbols = []
     positions = []
     for site in structure["sites"]:
@@ -36,8 +35,7 @@ for entry in dataset["data_points"]:
 
     atoms = Atoms(symbols=symbols, positions=positions, cell=lattice, pbc=pbc)
     atoms_list.append(atoms)
-
-    # 提取能量與力
+    
     E_ref.append(entry["property"]["energy"])
     F_ref.append(entry["property"]["forces"])
     num_atoms.append(len(symbols))
@@ -123,7 +121,7 @@ g1.ax_joint.set_aspect('equal', adjustable='box')
 g1.ax_joint.tick_params(axis='both', which='major', direction='out', length=10, width=1.5, labelsize=20)
 g1.ax_joint.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
 g1.ax_joint.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
-# 強制顯示 tick 線（有時會被 Seaborn 蓋掉）
+
 for tick in g1.ax_joint.xaxis.get_major_ticks():
     tick.tick1line.set_visible(True)  # bottom
     tick.tick2line.set_visible(False)  # top
@@ -132,7 +130,6 @@ for tick in g1.ax_joint.yaxis.get_major_ticks():
     tick.tick1line.set_visible(True)  # left
     tick.tick2line.set_visible(False)  # right
 
-# Spines 加粗
 g1.ax_joint.spines['bottom'].set_linewidth(2)
 g1.ax_joint.spines['left'].set_linewidth(2)
 g1.ax_joint.spines['top'].set_linewidth(2)
